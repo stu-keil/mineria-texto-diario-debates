@@ -19,6 +19,7 @@ import math
 import pandas as pd
 import sys
 import gensim
+from string import punctuation
 #Cleaning the house
 os.getcwd()
 os.chdir("/home/stuka/itam2/textmining/mineria-texto-diario-debates/data/raw/")
@@ -54,41 +55,80 @@ for documento in documentos:
     
     
 #Este es el buen codigo
+"""
+documento trae un file abierto
+lo consumo a memoria con read() a un solo string
+lo parto segun keyterms = Honorable asamblea
+"""
 for documento in documentos:
     documento_nombre = documento.name.rsplit('/',1)[1].split('.')[0]
     raw = documento.read()
     for i,tematica in enumerate(raw.replace("Honorable Asamblea:","Honorable asamblea:").split("Honorable asamblea:")):
         with io.open(path_to_raw+'tematicas/'+documento_nombre+'_'+str(i+1)+'.txt', mode="w") as newfile:
-            tematica_limpia = tematica.replace('\n',' ')
-            newfile.write(tematica.replace('\n',' '))
- 
+            tematica_limpia = mataAcentos(strip_punctuation(tematica.replace('\n',' ')))
+            newfile.write(tematica_limpia)
+
+def mataAcentos(s):
+    charstosub = pd.DataFrame(zip([u'á', u'é', u'í', u'ó', u'ú',u'"',u'“',u'”',u',',u'\.',u'ñ',u'\!',u'\¡'],[u'a', u'e', u'i', u'o', u'u',u'',u'',u'',u'',u'',u'n',u'',u''])) 
+    data = s.lower()
+    for row in charstosub.iterrows():
+        data = re.sub(row[1][0],row[1][1],data)
+    return data
+##Este no funciona aun
+def cleanText(corpus):
+    #punctuation = """.,?!:;(){}[]"""
+    punctuation = punctuation
+    corpus = [z.lower().replace('\n','') for z in corpus]
+    corpus = [z.replace('<br />', ' ') for z in corpus]
+
+    #treat punctuation as individual words
+    for c in punctuation:
+        corpus = [z.replace(c, ' %s '%c) for z in corpus]
+    corpus = [z.split() for z in corpus]
+    return corpus
+
+#Esto si funciona
+def strip_punctuation(s):
+    return ''.join(c for c in s if c not in punctuation)
        
 file_names_tematicas = [f for f in os.listdir(path_to_raw+'tematicas/') if f.endswith('.txt')]
 sentences = []
 i=0
+dicto = {}
 for doc in file_names_tematicas:
     f = io.open(path_to_raw+'tematicas/'+doc,'rt')
     sentences.append(gensim.models.doc2vec.LabeledSentence(f.read().split(),["SENT_"+str(i+1)]))
+    dicto["SENT_"+str(i+1)] = doc 
     i=i+1
     f.close()
-
+#Pruebas
 sentences[0]
 sentences[0:5]
-print(sentences[0:5]) 
+print(sentences[0:5])
 
-test = sentences[0:5]
 
+#Modelo
 min_count = 5
 size = 50
 window = 10
  
 model = gensim.models.doc2vec.Doc2Vec(sentences,size = size, window = window, min_count = min_count)
+
+
+
+
+
 dir(model)
 len(model.vocab)
 model.similarity('organismos','constar')
-for i in model.most_similar(u'izquierda'):
-    print(i)
+checa(u'prostitucion')
+def checa(word):
+    for i in model.most_similar(word):
+        print(i)
+
 print model.docvecs.most_similar(["SENT_1"])
 model.docvecs["SENT_1"]
 dir(model.docvecs)
 model.docvecs.doctags
+dir(model)
+
