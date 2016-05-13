@@ -59,6 +59,7 @@ for documento in documentos:
     raw = documento.read()
     for i,tematica in enumerate(raw.replace("Honorable Asamblea:","Honorable asamblea:").split("Honorable asamblea:")):
         with io.open(path_to_raw+'tematicas/'+documento_nombre+'_'+str(i+1)+'.txt', mode="w") as newfile:
+            tematica_limpia = tematica.replace('\n',' ')
             newfile.write(tematica.replace('\n',' '))
  
        
@@ -77,14 +78,17 @@ print(sentences[0:5])
 
 test = sentences[0:5]
 
-min_count = 2
+min_count = 5
 size = 50
-window = 4
+window = 10
  
 model = gensim.models.doc2vec.Doc2Vec(sentences,size = size, window = window, min_count = min_count)
 dir(model)
-model.vocab
+len(model.vocab)
 model.similarity('organismos','constar')
-model.most_similar('hombre')
+for i in model.most_similar(u'izquierda'):
+    print(i)
 print model.docvecs.most_similar(["SENT_1"])
 model.docvecs["SENT_1"]
+dir(model.docvecs)
+model.docvecs.doctags
