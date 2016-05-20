@@ -3,6 +3,7 @@
 Created on Thu May 12 23:24:54 2016
 
 @author: stuka
+
 """
 
 import numpy as np
@@ -26,6 +27,14 @@ os.chdir("/home/stuka/itam2/textmining/mineria-texto-diario-debates/data/raw/")
 os.listdir(".")
 
 #Debe venir de fuera
+"""
+Christian - pon tu path local en path_to_raw
+Mete manualmente archivos a una carpeta_christian y corre este codigo
+file_names = [f for f in os.listdir(path_to_raw+'carpeta_christian/') if f.endswith('.txt')]
+documentos =[io.open(f,'rt') for f in file_names]
+
+
+"""
 path_to_raw = "/home/stuka/itam2/textmining/mineria-texto-diario-debates/data/"
 
 file_names = [f for f in os.listdir(path_to_raw+'raw/') if f.endswith('.txt')]
@@ -75,6 +84,10 @@ def mataAcentos(s):
         data = re.sub(row[1][0],row[1][1],data)
     return data
 ##Este no funciona aun
+"""
+Remover acentos y puntuacion parece no ser lo mejor
+
+
 def cleanText(corpus):
     #punctuation = """.,?!:;(){}[]"""
     punctuation = punctuation
@@ -86,11 +99,15 @@ def cleanText(corpus):
         corpus = [z.replace(c, ' %s '%c) for z in corpus]
     corpus = [z.split() for z in corpus]
     return corpus
+"""
 
 #Esto si funciona
 def strip_punctuation(s):
     return ''.join(c for c in s if c not in punctuation)
-       
+"""
+Christian!!!!!
+Crea una carpeta prueba y mete alli documentos de prueba para RAKE
+"""
 file_names_tematicas = [f for f in os.listdir(path_to_raw+'tematicas/') if f.endswith('.txt')]
 sentences = []
 i=0
@@ -101,6 +118,8 @@ for doc in file_names_tematicas:
     dicto["SENT_"+str(i+1)] = doc 
     i=i+1
     f.close()
+    
+    
 #Pruebas
 sentences[0]
 sentences[0:5]
@@ -121,7 +140,7 @@ model = gensim.models.doc2vec.Doc2Vec(sentences,size = size, window = window, mi
 dir(model)
 len(model.vocab)
 model.similarity('organismos','constar')
-checa(u'prostitucion')
+checa(u'elecciones')
 def checa(word):
     for i in model.most_similar(word):
         print(i)
