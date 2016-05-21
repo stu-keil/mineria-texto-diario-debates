@@ -116,6 +116,9 @@ def strip_punctuation(s):
 Christian!!!!!
 Crea una carpeta prueba y mete alli documentos de prueba para RAKE
 """
+
+############################################ Doc2Vec
+
 file_names_tematicas = [f for f in os.listdir(path_to_raw+'tematicas/') if f.endswith('.txt')]
 sentences = []
 i=0
@@ -140,6 +143,8 @@ window = 10
  
 model = gensim.models.doc2vec.Doc2Vec(sentences,size = size, window = window, min_count = min_count)
 
+
+#################Algunas Pruebas
 dir(model)
 len(model.vocab)
 model.similarity('organismos','constar')
@@ -154,6 +159,7 @@ dir(model.docvecs)
 model.docvecs.doctags
 dir(model)
 
+############################Armar datos para clustering
 mylist = []
 tags=[]
 for doc in model.docvecs.doctags:
@@ -200,9 +206,25 @@ agrupamiento.fit(mat)
 agrupamiento.labels_
 
 
-pd.DataFrame(zip(tags, agrupamiento.labels_.tolist()))
-#tags[''] = agrupamiento.labels_.tolist()
+agrupados = pd.DataFrame(zip(tags, agrupamiento.labels_.tolist()))
 
+n_clusters=5
+
+
+lista_cluster =  [[] for i in range(n_clusters)]
+for i in range(len(agrupados)):
+   lista_cluster[agrupados[1][i]].append(agrupados[0][i])
+   
+for i in range(len(lista_cluster)):
+    print("Clster"+str(i),len(lista_cluster[i]))
+
+for i in range(len(lista_cluster)):
+    with io.open(path_to_raw+'clusters_to_rake/'+"cluster_"+str(i)+".txt", 'w') as outfile:
+        filenames = lista_cluster[i]
+        for fname in filenames:
+            with io.open(path_to_raw+'tematicas_to_rake/'+fname) as infile:
+                for line in infile:
+                    outfile.write(line)
 
 ######################################MajorClust
 #### Calculo de Cosine Similarity
@@ -245,4 +267,6 @@ for item, index in enumerate(indices):
 
 ######################### RAKE ############################################
 
-nltk.corpus.stopwords.words('spanish')
+print(nltk.corpus.stopwords.words('spanish'))
+
+
