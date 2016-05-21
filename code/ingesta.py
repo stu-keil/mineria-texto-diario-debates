@@ -26,7 +26,7 @@ from random import shuffle
 from nltk.corpus import stopwords
 #Cleaning the house
 os.getcwd()
-os.chdir("/home/stuka/itam2/textmining/mineria-texto-diario-debates/data/raw/")
+os.chdir("/home/stuka/itam2/textmining/mineria-texto-diario-debates/code/")
 os.listdir(".")
 
 #Debe venir de fuera
@@ -171,13 +171,13 @@ tags[0]
 mat = np.array(mylist)
 ############################################### KMeans
 
-for i in range(10):
+for i in range(20):
     agrupamiento = KMeans(n_clusters = i+1)
     agrupamiento.fit(mat)
 #    mylist['clasificacion_'] = agrupamiento.labels_.tolist()
     
 from scipy.cluster.vq import kmeans,vq
-K = range(1,10)
+K = range(1,20)
 
 KM = [kmeans(mat,k) for k in K]
 centroids = [cent for (cent,var) in KM] 
@@ -201,14 +201,14 @@ plt.show()
 
 
 # KMeans con el resultado del criterio del codo
-agrupamiento = KMeans(n_clusters = 5)
+agrupamiento = KMeans(n_clusters = 20)
 agrupamiento.fit(mat)
 agrupamiento.labels_
 
 
 agrupados = pd.DataFrame(zip(tags, agrupamiento.labels_.tolist()))
 
-n_clusters=5
+n_clusters=20
 
 
 lista_cluster =  [[] for i in range(n_clusters)]
@@ -267,6 +267,11 @@ for item, index in enumerate(indices):
 
 ######################### RAKE ############################################
 
-print(nltk.corpus.stopwords.words('spanish'))
+import rake
+import operator
 
+rake_object = rake.Rake("stop_words_spanish.txt", 5, 5, 100)
 
+sample_file = io.open(path_to_raw+'clusters_to_rake/'+"cluster_0.txt", 'r')
+text = sample_file.read()
+keywords = rake_object.run(text)
