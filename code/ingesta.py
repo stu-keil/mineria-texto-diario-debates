@@ -24,6 +24,7 @@ from string import punctuation
 import itertools
 from random import shuffle
 from nltk.corpus import stopwords
+import random
 #Cleaning the house
 os.getcwd()
 os.chdir("/home/stuka/itam2/textmining/mineria-texto-diario-debates/code/")
@@ -91,23 +92,7 @@ def mataAcentos(s):
     for row in charstosub.iterrows():
         data = re.sub(row[1][0],row[1][1],data)
     return data
-##Este no funciona aun
-"""
-Remover acentos y puntuacion parece no ser lo mejor
 
-
-def cleanText(corpus):
-    #punctuation = """.,?!:;(){}[]"""
-    punctuation = punctuation
-    corpus = [z.lower().replace('\n','') for z in corpus]
-    corpus = [z.replace('<br />', ' ') for z in corpus]
-
-    #treat punctuation as individual words
-    for c in punctuation:
-        corpus = [z.replace(c, ' %s '%c) for z in corpus]
-    corpus = [z.split() for z in corpus]
-    return corpus
-"""
 
 #Esto si funciona
 def strip_punctuation(s):
@@ -184,13 +169,19 @@ centroids = [cent for (cent,var) in KM]
 avgWithinSS = [var for (cent,var) in KM] # suma de cuadrados promedio intra-cluster 
 
 ##### plot ###
-kIdx = 4
+kIdx = 12
+kIdx2 = 4
+kIdx3 = 17
 
 # elbow curve
 fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.plot(K, avgWithinSS, 'b*-')
 ax.plot(K[kIdx], avgWithinSS[kIdx], marker='o', markersize=12, 
+    markeredgewidth=2, markeredgecolor='r', markerfacecolor='None')
+ax.plot(K[kIdx2], avgWithinSS[kIdx2], marker='o', markersize=12, 
+    markeredgewidth=2, markeredgecolor='r', markerfacecolor='None')
+ax.plot(K[kIdx3], avgWithinSS[kIdx3], marker='o', markersize=12, 
     markeredgewidth=2, markeredgecolor='r', markerfacecolor='None')
 plt.grid(True)
 plt.xlabel('Numero de clusters')
@@ -199,17 +190,14 @@ plt.title('Criterio del codo para K-Medias')
 
 plt.show()
 
-
+n_clusters=5
 # KMeans con el resultado del criterio del codo
-agrupamiento = KMeans(n_clusters = 20)
+agrupamiento = KMeans(n_clusters = n_clusters)
 agrupamiento.fit(mat)
 agrupamiento.labels_
 
 
 agrupados = pd.DataFrame(zip(tags, agrupamiento.labels_.tolist()))
-
-n_clusters=20
-
 
 lista_cluster =  [[] for i in range(n_clusters)]
 for i in range(len(agrupados)):
@@ -217,11 +205,15 @@ for i in range(len(agrupados)):
    
 for i in range(len(lista_cluster)):
     print("Clster"+str(i),len(lista_cluster[i]))
-
+sample_docs = 40
 for i in range(len(lista_cluster)):
     with io.open(path_to_raw+'clusters_to_rake/'+"cluster_"+str(i)+".txt", 'w') as outfile:
         filenames = lista_cluster[i]
-        for fname in filenames:
+        if len(filenames)<40:
+            randfiles = random.sample(filenames, len(filenames))
+        else:
+            randfiles = random.sample(filenames, 40)
+        for fname in randfiles:
             with io.open(path_to_raw+'tematicas_to_rake/'+fname) as infile:
                 for line in infile:
                     outfile.write(line)
@@ -270,8 +262,19 @@ for item, index in enumerate(indices):
 import rake
 import operator
 
-rake_object = rake.Rake("stop_words_spanish.txt", 5, 5, 100)
+rake_object = rake.Rake("stop_words_spanish.txt", 5, 5, 8)
 
-sample_file = io.open(path_to_raw+'clusters_to_rake/'+"cluster_0.txt", 'r')
-text = sample_file.read()
-keywords = rake_object.run(text)
+
+file_names_clusters = [f for f in os.listdir(path_to_raw+'clusters_to_rake/') if f.endswith('.txt')]
+keywords_len = []
+for doc in file_names_clusters:
+    documento_nombre = doc.split('.')[0]
+    sample_file = io.open(path_to_raw+'clusters_to_rake/'+doc, 'r')
+    text = sample_file.read()
+    keywords = rake_object.run(text)
+    keywords_len = len(keywords)
+    with io.open(path_to_raw+'resultados_rake/'+documento_nombre+'_keywords'+'.csv', mode="w",encoding="utf-8") as newfile:
+        for i,j in keywords:
+            line = i+","+str(j)+"\n"
+            newfile.writelines(line)
+    
