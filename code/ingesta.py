@@ -25,6 +25,8 @@ import itertools
 from random import shuffle
 from nltk.corpus import stopwords
 import random
+import csv
+from sklearn.feature_extraction.text import TfidfVectorizer
 #Cleaning the house
 os.getcwd()
 os.chdir("/home/stuka/itam2/textmining/mineria-texto-diario-debates/code/")
@@ -238,6 +240,8 @@ finish = False
 iters = 1
 shuffled_indices = np.arange(num_of_samples)
 shuffle(shuffled_indices)
+stitch = shuffled_indices.copy()
+
 while not finish:
   finish = True
   for index in shuffled_indices:
@@ -248,14 +252,36 @@ while not finish:
       shuffled_indices[index] = shuffled_indices[new_index]
       finish = False
 
-bins = pd.DataFrame(zip(np.arange(num_of_samples),np.bincount(shuffled_indices)))
-bins[bins[1] != 0].sort_values(1,ascending=False)
 
+clusters = pd.DataFrame(zip(stitch,shuffled_indices),columns=["document","cluster"]).sort_values("document",ascending=True)
+my_tab = pd.crosstab(index=clusters["cluster"],columns="count").sort_values("count",ascending=False)  
+rename = pd.DataFrame(zip(my_tab.index,np.arange(my_tab.shape[0])),columns=["cluster","cluster_id"])
 
+final_majorclust=pd.merge(clusters,rename,how='left',on='cluster')
+final_clusters = final_majorclust[final_majorclust["cluster_id"]<5]
+doc_names = [tags[i] for i in final_clusters["document"]]
+final_clusters["doc_names"] = doc_names
 
-clusters = {}
-for item, index in enumerate(indices):
-  clusters.setdefault(index, []).append(links[-50+item]["url"])
+agrupados = final_clusters[["doc_names","cluster_id"]]
+n_clusters=len(agrupados["cluster_id"].unique())
+lista_cluster =  [[] for i in range(n_clusters)]
+for i in range(len(agrupados)):
+   lista_cluster[agrupados.iloc[i,1]].append(agrupados.iloc[i,0])
+   
+for i in range(len(lista_cluster)):
+    print("Clster"+str(i),len(lista_cluster[i]))
+sample_docs = 40
+for i in range(len(lista_cluster)):
+    with io.open(path_to_raw+'clusters_to_rake/'+"cluster_"+str(i)+".txt", 'w') as outfile:
+        filenames = lista_cluster[i]
+        if len(filenames)<40:
+            randfiles = random.sample(filenames, len(filenames))
+        else:
+            randfiles = random.sample(filenames, 40)
+        for fname in randfiles:
+            with io.open(path_to_raw+'tematicas_to_rake/'+fname) as infile:
+                for line in infile:
+                    outfile.write(line)
 
 ######################### RAKE ############################################
 
@@ -278,3 +304,31 @@ for doc in file_names_clusters:
             line = i+","+str(j)+"\n"
             newfile.writelines(line)
     
+########################################### TF IDF #####################################################
+file_names_resultados = [f for f in os.listdir(path_to_raw+'resultados_rake/') if f.endswith('.csv')]
+oraciones = [[] for i in range(len(file_names_resultados))]
+for doc in file_names_resultados:
+    orden = int(doc.split("_")[1])
+    with io.open(path_to_raw+'resultados_rake/'+doc, 'rb') as csvfile:
+        reader = csv.reader(csvfile, delimiter=',')
+        oracion = ""
+        for row in reader:
+            oracion = oracion+" "+row[0]
+        oraciones[orden]=oracion
+        
+
+vectorizer = TfidfVectorizer(ngram_range=(1,3),stop_words = stopwords.words("spanish"))
+X = vectorizer.fit_transform(oraciones)
+palabras = vectorizer.get_feature_names()
+dense = X.todense()
+columns = ["cluster","rango","termino","score"]
+df = pd.DataFrame(columns=columns)
+for j in range(len(oraciones)):
+    docto = dense[j].tolist()[0]
+    phrase_scores = [pair for pair in zip(range(0, len(docto)), docto) if pair[1] > 0]
+    sorted_phrase_scores = sorted(phrase_scores, key=lambda t: t[1] * -1)
+    i = 0
+    for phrase, score in [(palabras[word_id], score) for (word_id, score) in sorted_phrase_scores][:20]:
+        df.loc[j*20+i] = [j,i,phrase,score]       
+        i=i+1
+df.to_csv(path_to_raw+'resultados_tfidf/tfidf.csv', sep=',', encoding='utf-8')       
